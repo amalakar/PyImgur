@@ -53,19 +53,19 @@ def _request(url, payload={}, method="GET", force_client=False):
             r = requests.post(url, payload)
         elif method == 'DELETE':
             r = requests.delete(url)
-        _test_response(r.status_code, r.headers, r.content)
+        _test_response(r)
         content = json.loads(r.content)
 
     return content
 
-def _test_response(status_code, headers, content):
+def _test_response(r):
     """
     Test if everything is okay.
 
     If everything isn't okay, call the appropriate error code.
     """
-    if status_code != 200:
-        pyimgur.errors.raise_error(status_code)
+    if r.status_code != 200:
+        pyimgur.errors.raise_error(r.status_code, r.json())
     elif content == '':
         error_message = ("Malformed json returned from Imgur. "
                          "Status_code: %d" % status_code)

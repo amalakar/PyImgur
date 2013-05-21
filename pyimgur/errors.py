@@ -26,47 +26,18 @@ class AccessDeniedError(Exception):
     """We don't have the authorization to do that."""
 
 class ImgurError(Exception):
-    """Our request returned with an error."""
-
-class Code400(ImgurError):
-    pass
-
-class Code401(ImgurError):
-    pass
-
-class Code403(ImgurError):
-    pass
-
-class Code404(ImgurError):
-    pass
-
-class Code500(ImgurError):
-    pass
+    def __init__(self, method, url, status_code, error, msg=None):
+        self.method = method
+        self.url = url
+        self.http_code = status_code
+        self.error = error
+        if msg is not None:
+            self.msg = "Error doing {0} on url: {1}. Code: {2}. Error: {3} "\
+                .format(method, url, status_code['data']['error'])
 
 
-def raise_error(status_code):
-    if status_code == 400:
-        raise Code400(
-            "A parameter has a value that is out of bounds or otherwise "
-            "incorrect. This status code is also returned when image uploads "
-            "fail due to images that are corrupt or do not meet the format "
-            "requirements.")
-    elif status_code == 401:
-        raise Code401(
-            "The request requires user authentication. Either you were not "
-            "logged in or the authentication you sent were invalid.")
-    elif status_code == 403:
-        raise Code403(
-            "Forbidden. You don't have access to this action. If you're getting"
-            " this error, check that you haven't run out of API credits and "
-            "make sure you have valid tokens/secrets.")
-    elif status_code == 404:
-        raise Code404(
-            "Action not supported. This indicates you have requested a resource"
-            " that does not exist. For example, requesting page 100 from a list"
-            " of 5 images will result in a 404.")
-    elif status_code == 500:
-        raise Code500(
-            "Unexpected internal error. What it says. We'll strive NOT to "
-            "return these but your app should be prepared to see it. It "
-            "basically means that something is broken with the Imgur service.")
+    def __str__(self):
+        return self.msg
+
+def raise_error(http_code, error):
+    raise ImgurError(http_code, error)

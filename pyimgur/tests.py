@@ -25,7 +25,12 @@ import unittest
 import uuid
 
 from pyimgur import *
-import test_auth as auth
+class auth:
+    CLIENT_KEY="6e079e495bc5d23"
+    CLIENT_SECRET="7abcb27134df285eaa06d39202aee1231cf2fee6"
+    ACCESS_TOKEN="8037c5ecc4123c91066922514de4b75287610fda"
+
+# import test_auth as auth
 
 LOCAL_FILE = "local.jpg"
 WEB_IMG = 'http://www.paradoxplaza.com/sites/all/themes/paradoxplaza/logo.png'
@@ -33,30 +38,30 @@ WEB_IMG = 'http://www.paradoxplaza.com/sites/all/themes/paradoxplaza/logo.png'
 
 class AnonymousTest(unittest.TestCase):
     def test_delete_image_with_del_hash(self):
-        image_info = upload_image(LOCAL_FILE, api_key=auth.API_KEY)
+        image_info = upload_image(LOCAL_FILE, api_key=auth.CLIENT_KEY)
         deletehash = image_info['image']['deletehash']
         result = delete_image(deletehash)
         self.assertEqual(result['message'], 'Success')
 
     def test_upload_local(self):
-        image_info = upload_image(LOCAL_FILE, api_key=auth.API_KEY)
+        image_info = upload_image(LOCAL_FILE, api_key=auth.CLIENT_KEY)
         self.assertTrue("image" in image_info.keys())
         deletehash = image_info['image']['deletehash']
         delete_image(deletehash)
 
     def test_upload_local_and_web_given(self):
         self.assertRaises(LookupError, upload_image, LOCAL_FILE, url=WEB_IMG,
-                          api_key=auth.API_KEY)
+                          api_key=auth.CLIENT_KEY)
 
     def test_upload_from_the_web(self):
-        image_info = upload_image(url=WEB_IMG, api_key=auth.API_KEY)
+        image_info = upload_image(url=WEB_IMG, api_key=auth.CLIENT_KEY)
         deletehash = image_info['image']['deletehash']
         result = delete_image(deletehash)
         self.assertEqual(result['message'], 'Success')
 
     def test_upload_with_arguments(self):
         image_info = upload_image(LOCAL_FILE, title='title',
-                                  caption = 'caption', api_key=auth.API_KEY)
+                                  caption = 'caption', api_key=auth.CLIENT_KEY)
         self.assertTrue(image_info['image']['title'], 'title')
         self.assertTrue(image_info['image']['caption'], 'caption')
         deletehash = image_info['image']['deletehash']
@@ -68,8 +73,19 @@ class AnonymousTest(unittest.TestCase):
 
 class AuthenticatedTest(unittest.TestCase):
     def setUp(self):
-        oauth_set_credentials(auth.CONSUMER_KEY, auth.CONSUMER_SECRET,
-                              auth.TOKEN_KEY, auth.TOKEN_SECRET)
+        # oauth_set_credentials(auth.CONSUMER_KEY, auth.CONSUMER_SECRET,
+        #                       auth.TOKEN_KEY, auth.TOKEN_SECRET)
+        pass
+
+    def test_login(self):
+        p = pyimgur(auth.CLIENT_KEY, auth.CLIENT_SECRET)
+        print p.get_auth_url()
+        # pin = raw_input("input PIN\n")
+        print p.get_token("e4d0d3a9ac")
+
+    def test_upload_img(self):
+        p = pyimgur(auth.CLIENT_KEY, auth.CLIENT_SECRET, auth.ACCESS_TOKEN)
+        p.upload_image_local("local.jpg", title="test", description="test description")
 
     def test_account_images(self):
         start_images = account_images()
@@ -138,7 +154,7 @@ class AuthenticatedTest(unittest.TestCase):
         unittest.skip("Currently doesn't work in testing. Works in production")
 
     def test_edit_images(self):
-        image_info = upload_image(LOCAL_FILE, api_key=auth.API_KEY)['image']
+        image_info = upload_image(LOCAL_FILE, api_key=auth.CLIENT_KEY)['image']
         edit_image(image_info['hash'], title='new_title', caption="new_cap")
         info = info_image(image_info['hash'])['image']
         self.assertEqual(info['title'], 'new_title')
