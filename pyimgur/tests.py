@@ -25,12 +25,7 @@ import unittest
 import uuid
 
 from pyimgur import *
-class auth:
-    CLIENT_KEY="6e079e495bc5d23"
-    CLIENT_SECRET="7abcb27134df285eaa06d39202aee1231cf2fee6"
-    ACCESS_TOKEN="8037c5ecc4123c91066922514de4b75287610fda"
-
-# import test_auth as auth
+from pyimgur import auth
 
 LOCAL_FILE = "local.jpg"
 WEB_IMG = 'http://www.paradoxplaza.com/sites/all/themes/paradoxplaza/logo.png'
