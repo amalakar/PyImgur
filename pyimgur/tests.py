@@ -73,14 +73,24 @@ class AuthenticatedTest(unittest.TestCase):
         pass
 
     def test_login(self):
-        p = pyimgur(auth.CLIENT_KEY, auth.CLIENT_SECRET)
+        p = Imgur(auth.CLIENT_KEY, auth.CLIENT_SECRET)
         print p.get_auth_url()
         # pin = raw_input("input PIN\n")
-        print p.get_token("e4d0d3a9ac")
+        print p.get_token("267e9fc8eb")
 
     def test_upload_img(self):
-        p = pyimgur(auth.CLIENT_KEY, auth.CLIENT_SECRET, auth.ACCESS_TOKEN)
-        p.upload_image_local("local.jpg", title="test", description="test description")
+        p = Imgur(auth.CLIENT_KEY, auth.CLIENT_SECRET, auth.ACCESS_TOKEN)
+        i = p.upload_image_local("local.jpg", title="test", description="test description")
+        i.delete()
+        print i
+
+    def test_get_img(self):
+        p = Imgur(auth.CLIENT_KEY, auth.CLIENT_SECRET, auth.ACCESS_TOKEN, logger=sys.stderr)
+        img = p.get_image("ZSoGE9N")
+        # img.delete()
+        # print "Done"
+
+
 
     def test_account_images(self):
         start_images = account_images()

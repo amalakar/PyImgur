@@ -31,9 +31,11 @@ class ImgurError(Exception):
         self.url = url
         self.http_code = status_code
         self.error = error
-        if msg is not None:
+        if msg is None:
             self.msg = "Error doing {0} on url: {1}. Code: {2}. Error: {3} "\
-                .format(method, url, status_code['data']['error'])
+                .format(method, url, status_code, error['data']['error'])
+        else:
+            self.msg = msg
 
 
     def __str__(self):
