@@ -76,18 +76,18 @@ class AuthenticatedTest(unittest.TestCase):
         p = Imgur(auth.CLIENT_KEY, auth.CLIENT_SECRET)
         print p.get_auth_url()
         # pin = raw_input("input PIN\n")
-        print p.get_token("267e9fc8eb")
+        print p.get_token("eed49d776f")
 
     def test_upload_img(self):
         p = Imgur(auth.CLIENT_KEY, auth.CLIENT_SECRET, auth.ACCESS_TOKEN)
         i = p.upload_image_local("local.jpg", title="test", description="test description")
-        i.delete()
+        # i.delete()
         print i
 
     def test_get_img(self):
         p = Imgur(auth.CLIENT_KEY, auth.CLIENT_SECRET, auth.ACCESS_TOKEN, logger=sys.stderr)
-        img = p.get_image("ZSoGE9N")
-        # img.delete()
+        img = p.get_image("BHE8FHd")
+        img.delete()
         # print "Done"
 
 

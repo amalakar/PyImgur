@@ -93,10 +93,7 @@ class BaseImgur(object):
         else:
             self.http.headers = {"Authorization": "Client-ID {0}".format(self._client_id)}
 
-    @decorators.require_authentication
-    def fav_img(self, id):
-        """Favorite an image with the given ID. The user is required to be logged in to favorite the image."""
-        return _request('POST', self.config['fav_image'] % id)
+
 
     def _log(self, msg):
         try:
@@ -250,7 +247,7 @@ class ImageMixin(BaseImgur):
 
     def get_image(self, id):
         """Get information about an image."""
-        return self.request_json(self.config['image'] % id)
+        return self.request_json(self.config['image'] % id,  type="Image")
 
     def update_img_info(self, id, title=None, description=None):
         """Updates the title or description of an image. You can only update an image you own
@@ -258,6 +255,11 @@ class ImageMixin(BaseImgur):
         params = {'title': title,
                   'description': description}
         return _request('PUT', self.config['image'] % id, data=params)
+
+    @decorators.require_authentication
+    def fav_img(self, id):
+        """Favorite an image with the given ID. The user is required to be logged in to favorite the image."""
+        return _request('POST', self.config['fav_image'] % id)
 
 
 class AccountMixin(BaseImgur):

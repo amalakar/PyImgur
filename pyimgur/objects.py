@@ -1,5 +1,4 @@
 import six
-from pyimgur.errors import ImgurError
 from pyimgur.errors import AccessDeniedError
 
 __author__ = 'malakar'
@@ -52,25 +51,27 @@ class ImgurObject(object):
 
 class Image(ImgurObject):
     def delete(self):
-        # TODO check the flow
-        if self.deletehash:
-            self.imgur_session.delete_image(self.deletehash)
-        else:
-            try:
-                self.imgur_session.delete_image(self.id)
-            except ImgurError as e:
-                if e.status_code == 403:
-                    self._populate(None, True)
-                    if self.deletehash:
-                        self.imgur_session.delete_image(self.deletehash)
-                    else:
-                        raise AccessDeniedError()
+        self.imgur_session.delete_image(self._get_id())
 
-    def update(self):
-        pass
+    def update_img_info(self,  title=None, description=None):
+        self.imgur_session.update_img_info(self._get_id(), title, description)
 
     def fav(self):
-        pass
+        self.imgur_session.fav_image(self.id)
+
+    def _get_id(self):
+        if self.deletehash:
+            return self.deletehash
+        else:
+            if self._owned:
+                self.id
+            else:
+                self._populate(None, True)
+                if self.deletehash:
+                    return self.deletehash
+                else:
+                    raise AccessDeniedError()
+
 
 
 class Account(ImgurObject):
