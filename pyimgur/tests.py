@@ -68,33 +68,47 @@ class AnonymousTest(unittest.TestCase):
 
 class AuthenticatedTest(unittest.TestCase):
     def setUp(self):
+        self.i = Imgur(auth.CLIENT_KEY, auth.CLIENT_SECRET)
+
         # oauth_set_credentials(auth.CONSUMER_KEY, auth.CONSUMER_SECRET,
         #                       auth.TOKEN_KEY, auth.TOKEN_SECRET)
         pass
 
     def test_login(self):
-        p = Imgur(auth.CLIENT_KEY, auth.CLIENT_SECRET)
-        print p.get_auth_url()
+        print self.i.get_auth_url()
         # pin = raw_input("input PIN\n")
-        print p.get_token("eed49d776f")
+        print self.i.get_token("72dcb10efa")
 
     def test_upload_img(self):
-        p = Imgur(auth.CLIENT_KEY, auth.CLIENT_SECRET, auth.ACCESS_TOKEN)
-        i = p.upload_image_local("local.jpg", title="test", description="test description")
-        # i.delete()
-        print i
+        img = self.i.upload_image_local("local.jpg", title="test", description="test description")
+        self.assertTrue(len(img.id) > 0)
+        # img.delete()
+        print "Upload image: " + img.id
 
     def test_get_img(self):
-        p = Imgur(auth.CLIENT_KEY, auth.CLIENT_SECRET, auth.ACCESS_TOKEN, logger=sys.stderr)
-        img = p.get_image("BHE8FHd")
+        img = self.i.get_image("BHE8FHd")
         img.delete()
         # print "Done"
 
 
+class AccountTest(unittest.TestCase):
+    def setUp(self):
+        self.i = Imgur(auth.CLIENT_KEY, auth.CLIENT_SECRET, auth.ACCESS_TOKEN)
 
-    def test_account_images(self):
-        start_images = account_images()
-        self.assertTrue(isinstance(start_images, list))
+    def test_create_account(self):
+        account = self.i.create_account("pyimgurtest")
+        print account
+
+    def test_gallery_favs(self):
+        me = self.i.get_me()
+        favs = me.get_gallery_favs()
+        print favs
+
+    def test_account_favs(self):
+        me = self.i.get_me()
+        favs = me.get_favs()
+        for i in favs:
+            print i
 
     def test_account_images_noalbum(self):
         all_images = account_images()

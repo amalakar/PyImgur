@@ -11,8 +11,7 @@ class ImgurObject(object):
         """Return an instance of the appropriate class from the json_dict."""
         return cls(imgur_session, json_dict=json_dict)
 
-    def __init__(self, imgur_session, json_dict=None, fetch=True,
-                 link=None, underscore_names=None):
+    def __init__(self, imgur_session, json_dict=None, fetch=True, underscore_names=None):
         """Create a new object from the dict of attributes returned by the API.
 
         The fetch parameter specifies whether to retrieve the object's
@@ -24,11 +23,9 @@ class ImgurObject(object):
         self.imgur_session = imgur_session
         self._underscore_names = underscore_names
         self._populated = self._populate(json_dict, fetch)
-        if link:
-            self.link = link
 
     def _get_json_dict(self):
-        response = self.imgur_session.request_json(self.link, type=self.__class__,
+        response = self.imgur_session.request_json(self.url, type=self.__class__,
                                                    as_objects=False)
         return response['data']
 
@@ -73,21 +70,20 @@ class Image(ImgurObject):
                     raise AccessDeniedError()
 
 
-
 class Account(ImgurObject):
-    def __init__(self, imgur_session, username=None, json_dict=None, fetch=True):
-        info_url = imgur_session.config['account'] % username
-        super(ImgurObject, self).__init__(imgur_session, json_dict, fetch, info_url)
-        self.username = username
+    def __init__(self, imgur_session, url=None, json_dict=None, fetch=True):
+        if url is not None:
+            self.url = url
+        super(Account, self).__init__(imgur_session, json_dict, fetch)
 
     def delete(self):
         pass
 
-    def get_gallery_favourites(self):
-        pass
+    def get_gallery_favs(self):
+        return self.imgur_session.get_gallery_favs()
 
-    def get_favourites(self):
-        pass
+    def get_favs(self):
+        return self.imgur_session.get_favs()
 
     def get_submissions(self):
         pass
@@ -203,6 +199,17 @@ class Album(ImgurObject):
 
     def remove_images(self):
         pass
+
+
+class Favable(Album):
+
+    @classmethod
+    def from_api_response(cls, imgur_session, json_dict):
+        """Return an instance of the appropriate class from the json_dict."""
+        if json_dict['is_album']:
+            return Album(imgur_session, json_dict=json_dict)
+        else:
+            return Image(imgur_session, json_dict=json_dict)
 
 
 class Notification(ImgurObject):

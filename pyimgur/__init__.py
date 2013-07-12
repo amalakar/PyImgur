@@ -22,6 +22,7 @@ See https://github.com/Damgaard/PyImgur for details on how to use PyImgur.
 
 import json
 import datetime
+import types
 
 import requests
 import sys
@@ -37,6 +38,7 @@ class Config(object):
 
     API_URL = "https://api.imgur.com/3"
     OAUTH_URL = "https://api.imgur.com/oauth2"
+    PUBLIC_CATCHPA = "6LeZbt4SAAAAAG2ccJykgGk_oAqjFgQ1y6daNz-H"
     API_PATHS = {'info_album':        "/album/%s.json",
                  'image':             '/image/%s',
                  'fav_image':         '/image/%s/favorite',
@@ -45,6 +47,8 @@ class Config(object):
                  'upload':            '/upload.json',
                  'sideload':          '/upload.json',
                  'account':           '/account/%s',
+                 'gallery_favorites': '/account/%s/gallery_favorites',
+                 'account_favorites': '/account/%s/favorites',
                  'acct_albums':       '/account/albums.json',
                  'acct_albums_edit':  '/account/albums/%s.json',
                  'albums_count':      '/account/albums_count.json',
@@ -64,11 +68,6 @@ class Config(object):
             return self.OAUTH_URL + self.API_PATHS[key]
         return self.API_URL + self.API_PATHS[key]
 
-class Methods:
-    GET = "get"
-    POST = "post"
-    DELETE = "delete"
-    PUT = "PUT"
 
 class BaseImgur(object):
 
@@ -92,8 +91,6 @@ class BaseImgur(object):
             self.http.headers = {"Authorization": "Bearer {0}".format(self._token)}
         else:
             self.http.headers = {"Authorization": "Client-ID {0}".format(self._client_id)}
-
-
 
     def _log(self, msg):
         try:
@@ -139,9 +136,47 @@ class BaseImgur(object):
         def json_to_object(json_data):
             if 'data' in json_data:
                 object_class = eval("objects." + type)
-                return object_class.from_api_response(self, json_data['data'])
+                if isinstance(json_data['data'], types.ListType):
+                    object_list = []
+                    for o in json_data['data']:
+                        object_list.append(object_class.from_api_response(self, o))
+                    return object_list
+                else:
+                    return object_class.from_api_response(self, json_data['data'])
             return json_data
         return json_to_object
+
+    # @decorators.oauth_generator
+    def get_content(self, url, params=None,
+                    root_field='data', use_oauth=False, child_type=None):
+        """A generator method to return imgur content from a URL.
+
+        Starts at the initial url, and fetches content using the `after`
+        JSON data until `limit` entries have been fetched, or the
+        `place_holder` has been reached.
+
+        :param url: the url to start fetching content from
+        :param params: dictionary containing extra GET data to put in the url
+        :param root_field: indicates the field in the json response that holds
+            the data. Most objects use 'data', however some (flairlist) don't
+            have the 'data' object. Use None for the root object.
+        :returns: a list of imgur content, of type Image, GalleryImage,
+            GalleryAlbum.
+
+        """
+        objects_found = 0
+        params = params or {}
+
+        use_oauth_old = self._use_oauth
+        self._use_oauth = use_oauth
+        try:
+            page_data = self.request_json(url, data=params, as_objects=True, type=child_type)
+        finally:  # Restore _use_oauth value
+            self._use_oauth = use_oauth_old
+        for thing in page_data:
+            yield thing
+            objects_found += 1
+        return
 
 
 class OAuth2Imgur(BaseImgur):
@@ -176,7 +211,8 @@ class AuthenticatedImgur(OAuth2Imgur):
 
     def __init__(self, *args, **kwargs):
         super(AuthenticatedImgur, self).__init__(*args, **kwargs)
-        self.clear_authenticaion()
+        self._use_oauth = False  # Updated on a request by request basis
+        self.clear_authentication()
 
     def refresh_token(self, refresh_token=None, update_session=True):
         response = super(AuthenticatedImgur, self).refresh_access_information(
@@ -213,9 +249,9 @@ class AuthenticatedImgur(OAuth2Imgur):
         if update_user and 'identity' in scope:
             self.user = self.get_account(username)
 
-    def get_me(self, username):
-        response = self.request_json(self.config['account'] % username)
-        user = objects.Account(self, username, response)
+    def get_me(self):
+        response = self.request_json(self.config['account'] % "me")
+        user = objects.Account(self, json_dict=response['data'], fetch=False)
         return user
 
 
@@ -264,8 +300,25 @@ class ImageMixin(BaseImgur):
 
 class AccountMixin(BaseImgur):
     def get_account(self, username):
-        pass
+        response = self.request_json(self.config['account'] % username)
+        return objects.Account(self, username, response)
 
+    def create_account(self, username):
+        params = {'captcha': Config.PUBLIC_CATCHPA}
+        response = self.request_json(self.config['account']% username, "POST", data=params)
+        return objects.Account(self, username, response)
 
-class Imgur(ImageMixin, AccountMixin, OAuth2Imgur):
+    def delete_account(self, username="me"):
+        self.request_json(self.config['account']% username, "DELETE")
+
+    def get_gallery_favs(self, username="me", *args, **kwargs):
+        """Return the images the user has favorited in the gallery."""
+        return self.get_content(self.config['gallery_favorites'] % username, child_type="Favable", *args, **kwargs)
+
+    # oauth required
+    def get_favs(self, username="me", *args, **kwargs):
+        """Returns the users favorited images, only accessible if you're logged in as the user."""
+        return self.get_content(self.config['account_favorites'] % username, child_type="Favable", *args, **kwargs)
+
+class Imgur(ImageMixin, AccountMixin, AuthenticatedImgur):
     pass
