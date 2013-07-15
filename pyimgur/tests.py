@@ -77,7 +77,7 @@ class AuthenticatedTest(unittest.TestCase):
     def test_login(self):
         print self.i.get_auth_url()
         # pin = raw_input("input PIN\n")
-        print self.i.get_token("72dcb10efa")
+        print self.i.get_token("1e1d4fa2d3")
 
     def test_upload_img(self):
         img = self.i.upload_image_local("local.jpg", title="test", description="test description")
@@ -101,14 +101,49 @@ class AccountTest(unittest.TestCase):
 
     def test_gallery_favs(self):
         me = self.i.get_me()
-        favs = me.get_gallery_favs()
+        favs = me.get_account_gallery_favs()
         print favs
 
     def test_account_favs(self):
         me = self.i.get_me()
-        favs = me.get_favs()
+        favs = me.get_account_favs()
         for i in favs:
             print i
+
+    def test_account_submissions(self):
+        me = self.i.get_me()
+        submissions = me.get_account_submissions()
+        for s in submissions:
+            print s
+
+    def test_get_account_settings(self):
+        me = self.i.get_me()
+        settings = me.get_settings()
+        print settings
+
+    def test_update_account_settings(self):
+        me = self.i.get_me()
+        settings = me.update_settings(bio="I live in SF")
+        print settings
+
+    def test_get_account_stats(self):
+        me = self.i.get_me()
+        stats = me.get_stats()
+        self.assertIsNotNone(stats)
+
+    def test_get_account_gallery_profile(self):
+        me = self.i.get_me()
+        gallery_profile = me.get_gallery_profile()
+        self.assertIsNotNone(gallery_profile)
+
+    def test_has_verified_email(self):
+        me = self.i.get_me()
+        self.assertTrue(me.has_verified_email())
+
+    def test_send_verification_email(self):
+        me = self.i.get_me()
+        r = me.send_verification_email()
+        self.assertIsNotNone(r)
 
     def test_account_images_noalbum(self):
         all_images = account_images()

@@ -80,30 +80,45 @@ class Account(ImgurObject):
         pass
 
     def get_gallery_favs(self):
-        return self.imgur_session.get_gallery_favs()
+        return self.imgur_session.get_account_gallery_favs()
 
     def get_favs(self):
-        return self.imgur_session.get_favs()
+        return self.imgur_session.get_account_favs()
 
     def get_submissions(self):
-        pass
+        """Return the images a user has submitted to the gallery"""
+        return self.imgur_session.get_account_submissions()
 
     def get_settings(self):
+        return self.imgur_session.get_account_settings()
         pass
 
-    def update_settings(self):
-        pass
+    def update_settings(self, bio=None, public_images=None, messaging_enabled=None,
+                        album_privacy=None, accepted_gallery_terms=None):
+        """Updates the account settings for a given user, the user must be logged in."""
+        return self.imgur_session.update_account_settings(bio=bio, public_images=public_images,
+                                                          messaging_enabled=messaging_enabled,
+                                                          album_privacy=album_privacy,
+                                                          accepted_gallery_terms=accepted_gallery_terms)
 
     def get_stats(self):
-        pass
+        """Return the statistics about the account"""
+        return self.imgur_session.get_account_stats()
 
     def get_gallery_profile(self):
-        pass
+        """Returns the totals for the gallery profile."""
+        return self.imgur_session.get_account_gallery_profile()
 
-    def verify_email(self):
-        pass
+    def has_verified_email(self):
+        """Checks to see if user has verified their email address"""
+        return self.imgur_session.has_verified_email()
+
+    def send_verification_email(self):
+        """Checks to see if user has verified their email address"""
+        return self.imgur_session.send_verification_email()
 
     def get_albums(self):
+
         pass
 
     def get_album(self, id):
@@ -154,6 +169,12 @@ class Account(ImgurObject):
     def get_replies(self):
         pass
 
+
+class AccountStats(ImgurObject):
+    pass
+
+class GalleryProfile(ImgurObject):
+    pass
 
 class Comment(ImgurObject):
     def delete(self):

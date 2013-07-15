@@ -49,6 +49,12 @@ class Config(object):
                  'account':           '/account/%s',
                  'gallery_favorites': '/account/%s/gallery_favorites',
                  'account_favorites': '/account/%s/favorites',
+                 'account_submissions': '/account/%s/submissions/%s',
+                 'account_settings':  '/account/%s/settings',
+                 'account_stats':     '/account/%s/stats',
+                 'account_gallery_profile': '/account/%s/gallery_profile',
+                 'account_verified_email':  '/account/%s/verifyemail',
+
                  'acct_albums':       '/account/albums.json',
                  'acct_albums_edit':  '/account/albums/%s.json',
                  'albums_count':      '/account/albums_count.json',
@@ -116,7 +122,7 @@ class BaseImgur(object):
 
         self._log((r.request.method, r.url, r.status_code))
         if r.status_code < 200 or r.status_code >= 300:
-            error = {}
+            error = None
             try:
                 error = json.loads(r.content or r.text)
             except:
@@ -311,14 +317,43 @@ class AccountMixin(BaseImgur):
     def delete_account(self, username="me"):
         self.request_json(self.config['account']% username, "DELETE")
 
-    def get_gallery_favs(self, username="me", *args, **kwargs):
+    def get_account_gallery_favs(self, username="me", *args, **kwargs):
         """Return the images the user has favorited in the gallery."""
         return self.get_content(self.config['gallery_favorites'] % username, child_type="Favable", *args, **kwargs)
 
     # oauth required
-    def get_favs(self, username="me", *args, **kwargs):
+    def get_account_favs(self, username="me", *args, **kwargs):
         """Returns the users favorited images, only accessible if you're logged in as the user."""
         return self.get_content(self.config['account_favorites'] % username, child_type="Favable", *args, **kwargs)
+
+    def get_account_submissions(self, username="me", *args, **kwargs):
+        """Return the images a user has submitted to the gallery"""
+        return self.get_content(self.config['account_submissions'] % (username, 0), child_type="Favable", *args, **kwargs)
+
+    def get_account_settings(self, username='me', *args, **kwargs):
+        """Returns the account settings, only accessible if you're logged in as the user."""
+        return self.request_json(self.config['account_settings'] % username, type="Account")
+
+    def update_account_settings(self, username='me', bio=None, public_images=None, messaging_enabled=None,
+                                album_privacy=None, accepted_gallery_terms=None):
+        """Updates the account settings for a given user, the user must be logged in."""
+        data = {'bio': bio, 'public_images': public_images, 'messaging_enabled': messaging_enabled,
+                'album_privacy': album_privacy, 'accepted_gallery_terms': accepted_gallery_terms}
+        return self.request_json(self.config['account_settings'] % username, "POST", data=data)
+
+    def get_account_stats(self, username='me'):
+        """Return the statistics about the account."""
+        return self.request_json(self.config['account_stats'] % username, type='AccountStats')
+
+    def get_account_gallery_profile(self, username="me"):
+        return self.request_json(self.config['account_gallery_profile'] % username, type='GalleryProfile')
+
+    def has_verified_email(self, username='me'):
+        """Checks to see if user has verified their email address"""
+        return self.request_json(self.config['account_verified_email'] % username)['data']
+
+    def send_verification_email(self):
+        return self.request_json(self.config['account_verified_email'] % 'me', "POST")
 
 class Imgur(ImageMixin, AccountMixin, AuthenticatedImgur):
     pass
