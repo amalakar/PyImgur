@@ -117,9 +117,10 @@ class Account(ImgurObject):
         """Checks to see if user has verified their email address"""
         return self.imgur_session.send_verification_email()
 
-    def get_albums(self):
-
-        pass
+    def get_albums(self, *args, **kwargs):
+        """Get all the albums associated with the account. Must be logged in as the user to see secret and hidden
+         albums."""
+        return self.imgur_session.get_account_albums(*args, **kwargs)
 
     def get_album(self, id):
         pass

@@ -45,15 +45,15 @@ class Config(object):
                  'credits':           '/credits.json',
                  'stats':             '/stats.json',
                  'upload':            '/upload.json',
-                 'sideload':          '/upload.json',
                  'account':           '/account/%s',
                  'gallery_favorites': '/account/%s/gallery_favorites',
                  'account_favorites': '/account/%s/favorites',
-                 'account_submissions': '/account/%s/submissions/%s',
+                 'account_submissions': '/account/%s/submissions', # paginated
                  'account_settings':  '/account/%s/settings',
                  'account_stats':     '/account/%s/stats',
                  'account_gallery_profile': '/account/%s/gallery_profile',
                  'account_verified_email':  '/account/%s/verifyemail',
+                 'account_albums':     '/account/%s/albums', # paginated
 
                  'acct_albums':       '/account/albums.json',
                  'acct_albums_edit':  '/account/albums/%s.json',
@@ -153,8 +153,8 @@ class BaseImgur(object):
         return json_to_object
 
     # @decorators.oauth_generator
-    def get_content(self, url, params=None,
-                    root_field='data', use_oauth=False, child_type=None):
+    def get_content(self, url, params=None, start_page=0,
+                    limit=0, paginated=True, use_oauth=False, child_type=None):
         """A generator method to return imgur content from a URL.
 
         Starts at the initial url, and fetches content using the `after`
@@ -163,27 +163,50 @@ class BaseImgur(object):
 
         :param url: the url to start fetching content from
         :param params: dictionary containing extra GET data to put in the url
-        :param root_field: indicates the field in the json response that holds
-            the data. Most objects use 'data', however some (flairlist) don't
-            have the 'data' object. Use None for the root object.
+        :param limit: the number of content entries to fetch. If limit <= 0,
+            fetch the default for your account (25 for unauthenticated
+            users). If limit is None, then fetch as many entries as possible
+            It would make multiple calls if necessary.
+        :param paginated: This method is supposed to be used only for paginated pages. But many of
+            the imgut api which may end up returning a long list is not paginated at the moment. This library
+            still uses this method for those APIs, so that when imgur moves those apis to support pagination
+            there would be little change here.
         :returns: a list of imgur content, of type Image, GalleryImage,
             GalleryAlbum.
-
         """
         objects_found = 0
         params = params or {}
+        fetch_all = fetch_once = False
+        if limit is None:
+            fetch_all = True
+            params['limit'] = 1024  # Just use a big number
+        elif limit > 0:
+            params['limit'] = limit
+        else:
+            fetch_once = True
 
         use_oauth_old = self._use_oauth
-        self._use_oauth = use_oauth
-        try:
-            page_data = self.request_json(url, data=params, as_objects=True, type=child_type)
-        finally:  # Restore _use_oauth value
-            self._use_oauth = use_oauth_old
-        for thing in page_data:
-            yield thing
-            objects_found += 1
-        return
+        currentPage = start_page
 
+        # While we still need to fetch more content to reach our limit, do so.
+        while fetch_once or fetch_all or objects_found < limit:
+            self._use_oauth = use_oauth
+            try:
+                if paginated:
+                    page_data = self.request_json(url + '/' + str(currentPage), data=params, as_objects=True,
+                                                  type=child_type)
+                    currentPage += 1
+                else:
+                    page_data = self.request_json(url, data=params, as_objects=True, type=child_type)
+            finally:  # Restore _use_oauth value
+                self._use_oauth = use_oauth_old
+            fetch_once = False
+            if len(page_data) > 0:
+                for thing in page_data:
+                    yield thing
+                    objects_found += 1
+            else:
+                return
 
 class OAuth2Imgur(BaseImgur):
 
@@ -319,16 +342,18 @@ class AccountMixin(BaseImgur):
 
     def get_account_gallery_favs(self, username="me", *args, **kwargs):
         """Return the images the user has favorited in the gallery."""
-        return self.get_content(self.config['gallery_favorites'] % username, child_type="Favable", *args, **kwargs)
+        return self.get_content(self.config['gallery_favorites'] % username, paginated=False, child_type="Favable",
+                                *args, **kwargs)
 
     # oauth required
     def get_account_favs(self, username="me", *args, **kwargs):
         """Returns the users favorited images, only accessible if you're logged in as the user."""
-        return self.get_content(self.config['account_favorites'] % username, child_type="Favable", *args, **kwargs)
+        return self.get_content(self.config['account_favorites'] % username, paginated=False, child_type="Favable",
+                                *args, **kwargs)
 
     def get_account_submissions(self, username="me", *args, **kwargs):
         """Return the images a user has submitted to the gallery"""
-        return self.get_content(self.config['account_submissions'] % (username, 0), child_type="Favable", *args, **kwargs)
+        return self.get_content(self.config['account_submissions'] % username, child_type="Favable", *args, **kwargs)
 
     def get_account_settings(self, username='me', *args, **kwargs):
         """Returns the account settings, only accessible if you're logged in as the user."""
@@ -354,6 +379,13 @@ class AccountMixin(BaseImgur):
 
     def send_verification_email(self):
         return self.request_json(self.config['account_verified_email'] % 'me', "POST")
+
+    def get_account_albums(self, username="me", *args, **kwargs):
+        """Get all the albums associated with the account. Must be logged in as the user to see secret and hidden
+         albums."""
+        return self.get_content(self.config["account_albums"] % username, child_type="Album", *args, **kwargs)
+
+
 
 class Imgur(ImageMixin, AccountMixin, AuthenticatedImgur):
     pass
